@@ -1,3 +1,6 @@
+// extended slowmode, comissioned by Jack8#6482 (219514530563096576) on discord.
+// essentially adds a channel permission overwrite on the channel that you define to stop users from sending messages, for the duration you specify.
+
 type ChannelLock = {
   duration: number; // in seconds
   channelId: string; // id of the channel to apply the lock to
@@ -9,7 +12,7 @@ type MemberLock = {
 
 const kv = new pylon.KVNamespace('channelLocks');
 const lockDefinitions: Array<ChannelLock> = [
-  { duration: 60, channelId: '786233484162236459' }
+  { duration: 60*60, channelId: 'your channel id' }
 ];
 
 async function checkExpires() {

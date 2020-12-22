@@ -1,6 +1,7 @@
 // extended slowmode, comissioned by Jack8#6482 (219514530563096576) on discord.
 // essentially adds a channel permission overwrite on the channel that you define to stop users from sending messages, for the duration you specify.
 
+
 type ChannelLock = {
   duration: number; // in seconds
   channelId: string; // id of the channel to apply the lock to
@@ -12,7 +13,7 @@ type MemberLock = {
 
 const kv = new pylon.KVNamespace('channelLocks');
 const lockDefinitions: Array<ChannelLock> = [
-  { duration: 60*60, channelId: 'your channel id' }
+  { duration: 60*60*12, channelId: 'ur channel id' }
 ];
 
 async function checkExpires() {
@@ -50,13 +51,22 @@ async function checkExpires() {
         );
         if (!ogItem) return;
         const unblockedMembers = ogItem
-          .filter((v) => !changes[chId]?.includes(v))
+          .filter(
+            (v) =>
+              (changes[chId] && !changes[chId]?.includes(v)) || !changes[chId]
+          )
           .map((v) => v.id);
         const newOW = channel.permissionOverwrites.filter((v) => {
-          if (v.type !== discord.Channel.PermissionOverwriteType.MEMBER)
-            return true;
+          // @ts-ignore
+          if (v.type !== 1) return true;
           if (!unblockedMembers.includes(v.id)) return true;
-          if (v.allow === 0 && v.deny === 2048) return false;
+          if (typeof v.allow === 'number') {
+            // @ts-ignore
+            if (v.allow === 0 && v.deny === 2048) return false;
+          } else {
+            // @ts-ignore
+            if (v.allow === '0' && v.deny === '2048') return false;
+          }
         });
         if (newOW.length !== channel.permissionOverwrites.length) {
           await channel.edit({ permissionOverwrites: newOW });
@@ -71,8 +81,8 @@ discord.on('MESSAGE_CREATE', async (message) => {
     !message.member ||
     !(message instanceof discord.GuildMemberMessage) ||
     message.flags !== 0
-  )
-    return;
+  ) return;
+
   const channel = await message.getChannel();
   if (channel instanceof discord.DmChannel) return;
   if(channel.canMember(message.member, discord.Permissions.MANAGE_CHANNELS) && channel.canMember(message.member, discord.Permissions.MANAGE_ROLES)) return;
@@ -87,10 +97,7 @@ discord.on('MESSAGE_CREATE', async (message) => {
     const memberDef = newV.find((v) => v.id === message.author.id);
     if (!memberDef) {
       return {
-        next: [
-          ...newV,
-          { expires: def.duration * 1000, id: message.author.id }
-        ],
+        next: [...newV, { expires: Date.now() + def.duration * 1000, id: message.author.id }],
         result: true
       };
     } else {
@@ -110,12 +117,11 @@ discord.on('MESSAGE_CREATE', async (message) => {
         v.type === discord.Channel.PermissionOverwriteType.MEMBER
     );
     if (hasOW > -1) {
-      if (
-        newOverwrites[hasOW].allow === 0 &&
-        newOverwrites[hasOW].deny === 2048
-      ) {
-        return;
-      }
+      if (newOverwrites[hasOW].allow === 0 && newOverwrites[hasOW].deny === 2048) return;
+      
+
+      // @ts-ignore
+    if (newOverwrites[hasOW].allow === '0' && newOverwrites[hasOW].deny === '2048') return;
       newOverwrites[hasOW].allow = 0;
       newOverwrites[hasOW].deny = 2048;
     } else {

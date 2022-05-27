@@ -1,16 +1,27 @@
-//
-// leaveReaction.ts
-//
-
-const emojiServerLeave = 'ServerLeave:979733372727361548';
 const emojiServerJoin = 'ServerJoin:979733352967995392';
+const emojiServerLeave = 'ServerLeave:979733372727361548';
 const expiryHours = 24;
 
 const kv = new pylon.KVNamespace('LeaveReaction');
 
 type LeaveReactionData = { [key: string]: string };
 
-export async function onUserMessage(
+discord.on(discord.Event.MESSAGE_CREATE, async (msg) => {
+  if (msg.author.bot || msg.type !== discord.Message.Type.DEFAULT) return;
+  await onUserMessage(msg.author.id, msg.channelId, msg.id);
+});
+
+discord.on(discord.Event.GUILD_MEMBER_ADD, async (guildMember) => {
+  if (guildMember.user.bot) return;
+  await onUserJoin(guildMember.user.id);
+});
+
+discord.on(discord.Event.GUILD_MEMBER_REMOVE, async (guildMember) => {
+  if (guildMember.user.bot) return;
+  await onUserLeave(guildMember.user.id);
+});
+
+async function onUserMessage(
   userId: string,
   channelId: string,
   messageId: string
@@ -20,12 +31,12 @@ export async function onUserMessage(
   await kv.put(userId, dt, { ttl: 1000 * 60 * 60 * expiryHours });
 }
 
-export async function onUserJoin(userId: string) {
+async function onUserJoin(userId: string) {
   await updateReaction(userId, true, emojiServerJoin);
   await updateReaction(userId, false, emojiServerLeave);
 }
 
-export async function onUserLeave(userId: string) {
+async function onUserLeave(userId: string) {
   await updateReaction(userId, true, emojiServerLeave);
   await updateReaction(userId, false, emojiServerJoin);
 }
@@ -44,24 +55,3 @@ async function updateReaction(userId: string, add: boolean, emoji: string) {
     }
   }
 }
-
-//
-// main.ts
-//
-
-import * as leaveReaction from './leaveReaction';
-
-discord.on(discord.Event.MESSAGE_CREATE, async (msg) => {
-  if (msg.author.bot || msg.type !== discord.Message.Type.DEFAULT) return;
-  await leaveReaction.onUserMessage(msg.author.id, msg.channelId, msg.id);
-});
-
-discord.on(discord.Event.GUILD_MEMBER_ADD, async (guildMember) => {
-  if (guildMember.user.bot) return;
-  await leaveReaction.onUserJoin(guildMember.user.id);
-});
-
-discord.on(discord.Event.GUILD_MEMBER_REMOVE, async (guildMember) => {
-  if (guildMember.user.bot) return;
-  await leaveReaction.onUserLeave(guildMember.user.id);
-});

@@ -7,7 +7,7 @@ const kv = new pylon.KVNamespace('LeaveReaction');
 type LeaveReactionData = { [key: string]: string };
 
 discord.on(discord.Event.MESSAGE_CREATE, async (msg) => {
-  if (msg.author.bot || msg.type !== discord.Message.Type.DEFAULT) return;
+  if (msg.author.bot || ![discord.Message.Type.DEFAULT, discord.Message.Type.REPLY].includes(msg.type)) return;
   await onUserMessage(msg.author.id, msg.channelId, msg.id);
 });
 

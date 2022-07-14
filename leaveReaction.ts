@@ -1,5 +1,5 @@
-const emojiServerJoin = 'ServerJoin:979733352967995392';
-const emojiServerLeave = 'ServerLeave:979733372727361548';
+const emojiServerJoin = 'server_join:907937760080429076';
+const emojiServerLeave = 'server_leave:907937741109608460';
 const expiryHours = 24;
 
 const kv = new pylon.KVNamespace('LeaveReaction');
@@ -7,7 +7,13 @@ const kv = new pylon.KVNamespace('LeaveReaction');
 type LeaveReactionData = { [key: string]: string };
 
 discord.on(discord.Event.MESSAGE_CREATE, async (msg) => {
-  if (msg.author.bot || ![discord.Message.Type.DEFAULT, discord.Message.Type.REPLY].includes(msg.type)) return;
+  if (
+    msg.author.bot ||
+    ![discord.Message.Type.DEFAULT, discord.Message.Type.REPLY].includes(
+      msg.type
+    )
+  )
+    return;
   await onUserMessage(msg.author.id, msg.channelId, msg.id);
 });
 
@@ -45,9 +51,9 @@ async function updateReaction(userId: string, add: boolean, emoji: string) {
   const dt = await kv.get<LeaveReactionData>(userId);
   if (!dt) return;
   for (const [channelId, messageId] of Object.entries(dt)) {
-    const channel = await discord.getTextChannel(channelId);
+    const channel = await discord.getTextChannel(channelId).catch(() => {});
     if (!channel) continue;
-    const message = await channel.getMessage(messageId);
+    const message = await channel.getMessage(messageId).catch(() => {});
     if (add) {
       await message?.addReaction(emoji).catch((_) => {});
     } else {
